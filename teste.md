@@ -1,14 +1,14 @@
-# Convexus – ETL TransferGov para PostgreSQL (Talend) — **As‑Built**
+# Convexus – ETL TransferGov para PostgreSQL (Talend)
 
-> **Propósito:** Documentar **o que está em produção** (já implementado) no Talend — arquitetura, componentes, parâmetros, orquestração, datasets, mapeamentos, SLAs, observabilidade e procedimentos operacionais.  
+> **Propósito:** Documentar **o que está em produção** (já implementado) no Talend — arquitetura, componentes, parâmetros, orquestração, datasets, mapeamentos, observabilidade e procedimentos operacionais.  
 > **Escopo:** Coleta do ZIP do TransferGov, extração dos CSVs, transformação e carga em PostgreSQL.  
 > **Plataforma:** Talend (compatibilidade 8.0.1).  
-> **Job principal:** `migra_convexus` (versões publicadas: p.ex. `0.1.46`).  
+> **Job principal:** `migra_convexus` (versões publicada: `0.1.46`).  
 > **Ambiente TMC:** `default` • **Workspace:** `Personal (Lucas Guerreiro)` • **Type:** `Job`.
 
 ---
 
-## 1. Visão Executiva
+## 1. Visão Executiva (limitada a três tabelas)
 
 ```mermaid
 flowchart LR
@@ -18,16 +18,11 @@ flowchart LR
       STG --> P1[proponentes: tFileInputDelimited -> tMap -> tPostgresqlOutput]
       STG --> P2[convenio: tFileInputDelimited -> tMap -> tPostgresqlOutput]
       STG --> P3[empenho: tFileInputDelimited -> tMap -> tPostgresqlOutput]
-      STG --> P4[desembolso: tFileInputDelimited -> tMap -> tPostgresqlOutput]
-      STG --> P5[cronofisico: tFileInputDelimited -> tMap -> tPostgresqlOutput]
-      STG --> P6[termo_aditivo: tFileInputDelimited -> tMap -> tPostgresqlOutput]
-      STG --> P7[solicitacao_rendimento_aplicacao: tFileInputDelimited -> tMap -> tPostgresqlOutput]
-      STG --> P8[contraproposta: tFileInputDelimited -> tMap -> tPostgresqlOutput]
     end
-    P1 & P2 & P3 & P4 & P5 & P6 & P7 & P8 --> PG[(PostgreSQL)]
+    P1 & P2 & P3 --> PG[(PostgreSQL)]
 ```
 
-**Resultado:** Tabelas normalizadas no PostgreSQL (schemas `public`/`convexus_*`), consumíveis por ferramentas analíticas (ex.: Qlik).
+**Resultado:** Tabelas populadas no PostgreSQL (schema `transferegov`), consumíveis pela app `konvexus`.
 
 ---
 
