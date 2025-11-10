@@ -1,9 +1,9 @@
-# Convexus – ETL TransferGov para PostgreSQL (Talend)
+# konvexus – ETL TransferGov para PostgreSQL (Talend)
 
 > **Propósito:** Documentar **o que está em produção** (já implementado) no Talend — arquitetura, componentes, parâmetros, orquestração, datasets, mapeamentos, observabilidade e procedimentos operacionais.  
 > **Escopo:** Coleta do ZIP do TransferGov, extração dos CSVs, transformação e carga em PostgreSQL.  
 > **Plataforma:** Talend (compatibilidade 8.0.1).  
-> **Job principal:** `migra_convexus` (versões publicada: `0.1.46`).  
+> **Job principal:** `migra_konvexus` (versões publicada: `0.1.46`).  
 > **Ambiente TMC:** `default` • **Workspace:** `Personal (Lucas Guerreiro)` • **Type:** `Job`.
 
 ---
@@ -12,7 +12,7 @@
 
 ```mermaid
 flowchart LR
-    TG[(TransferGov ZIP)] -- HTTP --> J[Job Talend: migra_convexus]
+    TG[(TransferGov ZIP)] -- HTTP --> J[Job Talend: migra_konvexus]
     J -- tFileUnarchive --> STG[/CSV extraídos/]
     subgraph ETL Subjobs
       STG --> P1[proponentes: tFileInputDelimited -> tMap -> tPostgresqlOutput]
@@ -30,7 +30,7 @@ flowchart LR
 
 | Item | Valor |
 |---|---|
-| **Job** | `migra_convexus` |
+| **Job** | `migra_konvexus` |
 | **Compatibilidade** | 8.0.1 |
 | **Publisher** | Lucas Guerreiro |
 | **Ambiente** | `default` |
@@ -38,7 +38,7 @@ flowchart LR
 | **Orquestração** | TMC agendado |
 | **Diretórios** | `/opt/konvexus/transfergov/{download,unzip,logs,tmp}` |
 | **Fonte** | `https://repositorio.dados.gov.br/seges/detru/siconv.zip` |
-| **Destino** | PostgreSQL (`convexus_dev_db`/`convexus_hm_db`) |
+| **Destino** | PostgreSQL (`konvexus_dev_db`/`konvexus_hm_db`) |
 | **Conector** | JDBC PostgreSQL (`tPostgresqlConnection`) |
 | **Batch** | Habilitado nos `tPostgresqlOutput` |
 | **Logs** | `tLogCatcher` → arquivo em `/logs` |
@@ -57,7 +57,7 @@ flowchart LR
 | `DIR_LOGS` | `/opt/konvexus/transfergov/logs` | idem | Logs |
 | `PG_HOST` | `caracas.tarea.lan` | idem | Host PostgreSQL |
 | `PG_PORT` | `5432` | idem | Porta |
-| `PG_DB` | `convexus_dev_db` | `convexus_hm_db` | Database |
+| `PG_DB` | `konvexus_dev_db` | `konvexus_hm_db` | Database |
 | `PG_USER` | `tarea` | `tarea` | Usuário |
 | `PG_PASS` | **segredo** | **segredo** | Criptografado no Talend |
 | `BATCH_SIZE` | `5000` | `5000` | Commit em lote |
@@ -67,42 +67,13 @@ flowchart LR
 
 ---
 
-## 4. Arquitetura e Orquestração
-
-## 4.1 Grafo de Orquestração do Job
-
-```mermaid
-graph TD
-    PRE[tPrejob - conexao BD e setup] --> CLN[tFileList e tFileDelete]
-    CLN --> DWN[tFileFetch - download ZIP]
-    DWN --> UNZ[tFileUnarchive - extracao ZIP]
-    UNZ --> S1[Job proponentes]
-    UNZ --> S2[Job convenio]
-    UNZ --> S3[Job empenho]
-    UNZ --> S4[Job desembolso]
-    UNZ --> S5[Job cronofisico]
-    UNZ --> S6[Job termo_aditivo]
-    UNZ --> S7[Job solicitacao_rend_aplicacao]
-    UNZ --> S8[Job contraproposta]
-    S1 --> POST[tPostjob - fechamento de conexoes e logs]
-    S2 --> POST
-    S3 --> POST
-    S4 --> POST
-    S5 --> POST
-    S6 --> POST
-    S7 --> POST
-    S8 --> POST
-```
-
-**Dependências funcionais (exemplo prático):** `proponentes` → `convenio` → `empenho` → `desembolso`. Subjobs independentes rodam em sequência via `OnComponentOk` para reduzir contenção de I/O.
-
-### 4.2 Topologia de Execução
+## 4. Topologia de Execução
 
 ```mermaid
 sequenceDiagram
     participant TMC as Talend (TMC/cron)
-    participant JOB as Job migra_convexus
-    participant FS as FS: /opt/convexus/transfergov
+    participant JOB as Job migra_konvexus
+    participant FS as FS: /opt/konvexus/transfergov
     participant PG as PostgreSQL
 
     TMC->>JOB: Start (context: hm/dev)
@@ -118,53 +89,23 @@ sequenceDiagram
 
 ---
 
-## 5. Datasets, Esquemas & Mapeamentos
+## 5. Operação, SLA e Observabilidade
 
-> Os nomes a seguir refletem o padrão observado. Ajuste se necessário conforme publicação do TransferGov.
-
-| Dataset | Arquivo de origem | Tabela destino | Observações de mapeamento (tMap) |
-|---|---|---|---|
-| Proponentes | `proponentes.csv` | `public.siconv_proponentes` | Normalização de CNPJ/CPF; trim; `data_cadastro` para `date` |
-| Convênio | `convenio.csv` | `public.siconv_convenio` | FK `id_proponente`; `valor_global` → `numeric(18,2)`; parse de datas |
-| Empenho | `empenho.csv` | `public.siconv_empenho` | Conversões monetárias; chaves de referência ao convênio |
-| Desembolso | `desembolso.csv` | `public.siconv_desembolso` | Campos financeiros; datas e situação |
-| Crono Físico | `cronofisico.csv` | `public.siconv_cronofisico` | Percentuais numéricos; datas |
-| Termo Aditivo | `termo_aditivo.csv` | `public.siconv_termo_aditivo` | Vínculo ao convênio; situação |
-| Solicitação Rend. Aplicação | `solicitacao_rendimento_aplicacao.csv` | `public.siconv_sra` | Texto e datas; valores |
-| Contraproposta | `contraproposta.csv` | `public.siconv_contraproposta` | Situação; relacionamento ao convênio |
-
-**Padrões do `tPostgresqlOutput`:** `Action on table: None` • `Action on data: Insert` (ou `Insert or Update` quando PK definida) • `Commit every: ${context.BATCH_SIZE}` • `Use Batch Size: true`.
-
----
-
-## 6. Regras de Transformação (alto nível)
-
-- **Sanitização**: `trim()`, remoção de caracteres não numéricos em identificadores, lower/upper quando aplicável.  
-- **Datas**: parsing `dd/MM/yyyy` → `yyyy-MM-dd`. Valores inválidos são direcionados ao fluxo de erro ou substituídos por `NULL` conforme regra.  
-- **Numéricos**: vírgula para ponto; cast seguro para `numeric(18,2)`.  
-- **Chaves**: composição de PK/UK a partir do identificador do dataset quando disponível; validação de duplicidades com `tUniqueRow` (quando aplicado).  
-- **Codificação**: `UTF-8` esperado em todos os CSVs.
-
----
-
-## 7. Operação, SLA e Observabilidade
-
-### 7.1 Janela & Frequência
-- **Periodicidade:** diária (padrão) — agendada via TMC/cron.  
+### 5.1 Janela & Frequência
+- **Periodicidade:** diária (padrão) — agendada via TMC 07:00h.  
 - **Janela sugerida:** fora do horário comercial para reduzir disputa de recursos.  
 
-### 7.2 Metas (SLA/SLI)
+### 5.2 Metas (SLA/SLI)
 - **Disponibilidade do Job:** ≥ 99%.  
-- **Latência da carga:** ≤ 30 min após disparo.  
+- **Latência da carga:** ≤ 58 min após disparo.  
 - **Integridade:** zero linhas rejeitadas por tipo/dimensão (meta < 0,1%).
 
-### 7.3 Métricas & Logs
+### 5.3 Métricas & Logs
 - **Execução:** `tLogCatcher` → `${context.DIR_LOGS}/exec_YYYY-MM-DD.log`.  
-- **Contagem por tabela** (amostra SQL abaixo).  
-- **Alertas:** opcional via `tSendMail`/integração observabilidade.
+- **Contagem por tabela** (amostra SQL abaixo).
 
 ```sql
--- Contagem por tabela (pós-carga)
+-- Contagem por tabela (pós-carga ex:)
 SELECT 'siconv_proponentes' AS tabela, COUNT(*) FROM public.siconv_proponentes
 UNION ALL SELECT 'siconv_convenio', COUNT(*) FROM public.siconv_convenio
 UNION ALL SELECT 'siconv_empenho', COUNT(*) FROM public.siconv_empenho
@@ -173,7 +114,7 @@ UNION ALL SELECT 'siconv_desembolso', COUNT(*) FROM public.siconv_desembolso;
 
 ---
 
-## 8. Política de Erros & Reprocessamento
+## 6. Política de Erros & Reprocessamento
 
 ```mermaid
 flowchart TD
@@ -192,7 +133,7 @@ flowchart TD
 
 ---
 
-## 9. Segurança & Acesso
+## 7. Segurança & Acesso
 
 - **Credenciais**: contexto Talend criptografado.  
 - **SO**: permissões de pasta (proprietário `etl`, `0700`).  
@@ -201,10 +142,10 @@ flowchart TD
 
 ---
 
-## 10. Consumo Analítico (Qlik) — Opcional
+## 8. Consumo Analítico (Qlik) — Opcional
 
 ```qlik
-LIB CONNECT TO 'PostgreSQL_Convexus';
+LIB CONNECT TO 'PostgreSQL_konvexus';
 
 SICONV_CONVENIO:
 LOAD
@@ -224,20 +165,20 @@ FROM public.siconv_convenio;
 
 ---
 
-## 11. Mudanças Relevantes (Histórico)
+## 9. Mudanças Relevantes (Histórico)
 
 | Data | Versão | Descrição |
 |---|---|---|
-| 2025-11-06 | 0.1.46 | Publicação/estabilização do job `migra_convexus` no TMC. Padronização de contextos e batch. |
+| 2025-11-06 | 0.1.46 | Publicação/estabilização do job `migra_konvexus` no TMC. Padronização de contextos e batch. |
 | 2025-11-06 | - | Consolidação desta documentação **as‑built** com diagramas Mermaid. |
 
 ---
 
-## 12. Apêndice — Topologia de Pastas
+## 10. Apêndice — Topologia de Pastas
 
 ```mermaid
 graph TD
-    ROOT[/opt/convexus/transfergov/] --> DL[download/]
+    ROOT[/opt/konvexus/transfergov/] --> DL[download/]
     ROOT --> UZ[unzip/]
     ROOT --> LG[logs/]
     ROOT --> TMP[tmp/]
