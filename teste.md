@@ -8,7 +8,7 @@
 
 ---
 
-## 1. Visão Executiva (limitada a três tabelas)
+## 1. Visão Geral (limitada a três tabelas)
 
 ```mermaid
 flowchart LR
@@ -35,8 +35,8 @@ flowchart LR
 | **Publisher** | Lucas Guerreiro |
 | **Ambiente** | `default` |
 | **Workspace** | `Personal (Lucas Guerreiro)` |
-| **Orquestração** | TMC (agendamento) ou cron |
-| **Diretórios** | `/opt/convexus/transfergov/{download,unzip,logs,tmp}` |
+| **Orquestração** | TMC agendado |
+| **Diretórios** | `/opt/konvexus/transfergov/{download,unzip,logs,tmp}` |
 | **Fonte** | `https://repositorio.dados.gov.br/seges/detru/siconv.zip` |
 | **Destino** | PostgreSQL (`convexus_dev_db`/`convexus_hm_db`) |
 | **Conector** | JDBC PostgreSQL (`tPostgresqlConnection`) |
@@ -47,14 +47,14 @@ flowchart LR
 
 ## 3. Parâmetros & Contextos
 
-### 3.1 Context Group `ctx_transfergov`
+### 3.1 Context Group `transfergov`
 
 | Variável | dev | hm | Descrição |
 |---|---|---|---|
 | `URL_ZIP` | \- | \- | `https://repositorio.dados.gov.br/seges/detru/siconv.zip` |
-| `DIR_DOWNLOAD` | `/opt/convexus/transfergov/download` | idem | Pasta de download |
-| `DIR_UNZIP` | `/opt/convexus/transfergov/unzip` | idem | Pasta para CSVs |
-| `DIR_LOGS` | `/opt/convexus/transfergov/logs` | idem | Logs |
+| `DIR_DOWNLOAD` | `/opt/konvexus/transfergov/download` | idem | Pasta de download |
+| `DIR_UNZIP` | `/opt/konvexus/transfergov/unzip` | idem | Pasta para CSVs |
+| `DIR_LOGS` | `/opt/konvexus/transfergov/logs` | idem | Logs |
 | `PG_HOST` | `caracas.tarea.lan` | idem | Host PostgreSQL |
 | `PG_PORT` | `5432` | idem | Porta |
 | `PG_DB` | `convexus_dev_db` | `convexus_hm_db` | Database |
@@ -63,7 +63,7 @@ flowchart LR
 | `BATCH_SIZE` | `5000` | `5000` | Commit em lote |
 | `TRUNCATE_BEFORE_LOAD` | `false` | `false` | Trunca antes de carregar |
 
-> **Padrão de segurança**: credenciais armazenadas no Talend com criptografia de contexto; permissão de pasta restrita ao sistema `etl`.
+> **Padrão de segurança**: credenciais armazenadas no Talend com criptografia de contexto; permissão de pasta restrita ao sistema.
 
 ---
 
