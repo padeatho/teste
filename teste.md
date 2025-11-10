@@ -136,45 +136,12 @@ flowchart TD
 ## 7. Segurança & Acesso
 
 - **Credenciais**: contexto Talend criptografado.  
-- **SO**: permissões de pasta (proprietário `etl`, `0700`).  
 - **Banco**: usuário `tarea` com privilégios mínimos necessários (`CONNECT`, `INSERT`, `UPDATE`, `SELECT` em tabelas alvo).  
 - **Rede**: permitir saída HTTP para o domínio do TransferGov.
 
 ---
 
-## 8. Consumo Analítico (Qlik) — Opcional
-
-```qlik
-LIB CONNECT TO 'PostgreSQL_konvexus';
-
-SICONV_CONVENIO:
-LOAD
-    id_convenio,
-    id_proponente,
-    objeto,
-    valor_global,
-    data_assinatura
-SQL SELECT
-    id_convenio,
-    id_proponente,
-    objeto,
-    valor_global,
-    data_assinatura
-FROM public.siconv_convenio;
-```
-
----
-
-## 9. Mudanças Relevantes (Histórico)
-
-| Data | Versão | Descrição |
-|---|---|---|
-| 2025-11-06 | 0.1.46 | Publicação/estabilização do job `migra_konvexus` no TMC. Padronização de contextos e batch. |
-| 2025-11-06 | - | Consolidação desta documentação **as‑built** com diagramas Mermaid. |
-
----
-
-## 10. Apêndice — Topologia de Pastas
+## 8. Topologia de Pastas
 
 ```mermaid
 graph TD
@@ -183,11 +150,8 @@ graph TD
     ROOT --> LG[logs/]
     ROOT --> TMP[tmp/]
 ```
-
-**Observação:** rotação de logs recomendada (logrotate) e limpeza periódica de `download/` e `unzip/` (mantendo apenas o último ciclo).
-
 ---
 
 **Responsável técnico:** Lucas Guerreiro  
-**Contato:** (preencher)  
-**Repositório/Projeto:** (preencher)
+**Contato:** lucas.guerreiro@tarea.com.br 
+**Repositório/Projeto:** https://app.us.cloud.talend.com/tmc/tasks-and-plans-administration/6835cc8b97f9220c51d5b275/6867ca6d859f963e923a4ba3/tasks/standard/68d374076220f9127b8e9f95/detail?from=aj9e6a4e
